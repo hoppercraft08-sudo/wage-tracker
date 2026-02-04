@@ -2,215 +2,117 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Wage Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Wage Tracker Pro</title>
   <style>
-    :root {
-      --bg: #0b0f14;
-      --card: #121826;
-      --accent: #4da3ff;
-      --text: #e8eef5;
-      --muted: #9aa4b2;
+    :root{
+      --bg:#0b0f14;--card:#121826;--accent:#4da3ff;--accent2:#22c55e;
+      --text:#e8eef5;--muted:#9aa4b2;--line:#1f2a44;--chip:#0e1422;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: radial-gradient(1200px 600px at 50% -200px, #1a2336, var(--bg));
-      color: var(--text);
-      height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background:radial-gradient(1200px 600px at 50% -200px,#1a2336,var(--bg));
+      color:var(--text);
+      min-height:100vh;
     }
-    .phone {
-      width: 390px;
-      height: 820px;
-      background: var(--card);
-      border-radius: 28px;
-      padding: 28px 22px 24px;
-      box-shadow: 0 30px 80px rgba(0,0,0,.6);
-      display: flex;
-      flex-direction: column;
+    .app{
+      min-height:100vh;
+      padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+      background:var(--card);
+      display:flex;
+      flex-direction:column;
+      gap:14px;
     }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-    .header h1 {
-      font-size: 18px;
-      font-weight: 600;
-      letter-spacing: .3px;
-      margin: 0;
-    }
-    .badge {
-      font-size: 11px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(77,163,255,.15);
-      color: var(--accent);
-    }
-    .total {
-      margin-top: 8px;
-      text-align: center;
-    }
-    .amount {
-      font-size: 44px;
-      font-weight: 700;
-      letter-spacing: .5px;
-    }
-    .minor {
-      font-size: 22px;
-      color: var(--accent);
-    }
-    .sub {
-      margin-top: 6px;
-      font-size: 13px;
-      color: var(--muted);
-    }
-    .controls {
-      margin-top: 28px;
-    }
-    select {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 16px;
-      background: #0e1422;
-      color: var(--text);
-      border: 1px solid #1f2a44;
-      border-radius: 14px;
-    }
-    .footer {
-      margin-top: auto;
-      font-size: 12px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.4;
-    }
+    .row{display:flex;align-items:center;justify-content:space-between}
+    .badge{font-size:11px;padding:4px 8px;border-radius:999px;background:rgba(77,163,255,.15);color:var(--accent)}
+    .badge.off{background:rgba(245,158,11,.15);color:#f59e0b}
+    .amount{font-size:44px;font-weight:800;text-align:center}
+    .minor{font-size:22px;color:var(--accent)}
+    .sub{font-size:13px;color:var(--muted);text-align:center}
+    .card{background:#0e1422;border:1px solid var(--line);border-radius:16px;padding:12px}
+    .bar{height:10px;background:#0b1020;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
+    .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+    select{width:100%;padding:12px;border-radius:12px;background:var(--chip);color:var(--text);border:1px solid var(--line)}
   </style>
 </head>
 <body>
-  <div class="phone">
-    <div class="header">
-      <h1>Wage Tracker</h1>
-      <div class="badge">LIVE</div>
-    </div>
-
-    <div class="total">
-      <div class="amount" id="money">£0.<span class="minor">00000</span></div>
-      <div class="sub">Net earnings · auto-counting</div>
-    </div>
-
-    <div class="controls">
-      <select id="view">
-        <option value="all">Total since start</option>
-        <option value="week">This week</option>
-        <option value="month">This month</option>
-      </select>
-    </div>
-
-    <div class="footer">£91.30 / shift · Sun–Thu · 9pm–6am · 1h unpaid break</div>
+<div class="app">
+  <div class="row">
+    <strong>Wage Tracker</strong>
+    <div id="state" class="badge">LIVE</div>
   </div>
 
+  <div class="card">
+    <div class="amount" id="money">£0.<span class="minor">00000</span></div>
+    <div class="sub">Total since start</div>
+    <div class="bar"><i id="progress"></i></div>
+  </div>
+
+  <div class="card">
+    <select id="view">
+      <option value="all">Total since start</option>
+      <option value="week">This week</option>
+      <option value="month">This month</option>
+    </select>
+  </div>
+</div>
+
 <script>
-  const DAILY_NET = 91.30;
+const DAILY_NET=91.30, PAID_HOURS=8, BREAK_HRS=1;
+const START=21, END=6;
+const JOB_START=new Date(2026,1,1,21,0,0);
+const HOURLY=DAILY_NET/PAID_HOURS;
 
-  const SHIFT_START_HOUR = 21; // 9pm
-  const SHIFT_END_HOUR = 6;    // 6am
-  const UNPAID_BREAK_HOURS = 1;
-  const PAID_HOURS = 8;
-  const HOURLY_NET = DAILY_NET / PAID_HOURS;
-
-  // Job start: Sunday 1 Feb 2026 at 21:00 (LOCAL TIME)
-  const JOB_START = new Date(2026, 1, 1, 21, 0, 0);
-
-  function isWorkDay(date) {
-    const d = date.getDay(); // 0=Sun, 6=Sat
-    return d >= 0 && d <= 4; // Sun–Thu
-  }
-
-  function getShiftProgress(now) {
-    const shiftStart = new Date(now);
-    shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
-
-    if (now.getHours() < SHIFT_END_HOUR) {
-      shiftStart.setDate(shiftStart.getDate() - 1);
-    }
-
-    if (!isWorkDay(shiftStart)) return 0;
-
-    const shiftEnd = new Date(shiftStart);
-    shiftEnd.setHours(shiftEnd.getHours() + 9); // 8 paid + 1 break
-
-    if (now < shiftStart || now > shiftEnd) return 0;
-
-    const elapsedHours = (now - shiftStart) / 3600000;
-
-    let paidElapsed = elapsedHours;
-    if (elapsedHours > 4) paidElapsed -= UNPAID_BREAK_HOURS;
-
-    paidElapsed = Math.max(0, Math.min(PAID_HOURS, paidElapsed));
-
-    return paidElapsed * HOURLY_NET;
-  }
-
-  function countCompletedShifts(now, scope) {
-    let total = 0;
-    let d = new Date(JOB_START);
-
-    while (d < now) {
-      if (isWorkDay(d)) {
-        const shiftStart = new Date(d);
-        shiftStart.setHours(SHIFT_START_HOUR, 0, 0, 0);
-        const shiftEnd = new Date(shiftStart);
-        shiftEnd.setHours(shiftEnd.getHours() + 9);
-
-        if (shiftEnd <= now) {
-          if (scope === 'week') {
-            const startOfWeek = new Date(now);
-            startOfWeek.setDate(now.getDate() - now.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
-            if (shiftStart < startOfWeek) { d.setDate(d.getDate() + 1); continue; }
-          }
-
-          if (scope === 'month') {
-            if (
-              shiftStart.getMonth() !== now.getMonth() ||
-              shiftStart.getFullYear() !== now.getFullYear()
-            ) {
-              d.setDate(d.getDate() + 1);
-              continue;
-            }
-          }
-
-          total += DAILY_NET;
+function isWorkDay(d){return d.getDay()<=4}
+function shiftWindow(now){
+  const s=new Date(now);s.setHours(START,0,0,0);
+  if(now.getHours()<END) s.setDate(s.getDate()-1);
+  const e=new Date(s);e.setHours(e.getHours()+PAID_HOURS+BREAK_HRS);
+  return {s,e};
+}
+function inShift(now){const {s,e}=shiftWindow(now);return isWorkDay(s)&&now>=s&&now<=e}
+function progress(now){
+  if(!inShift(now)) return {money:0,pct:0};
+  const {s}=shiftWindow(now);
+  let h=(now-s)/36e5; if(h>4) h-=BREAK_HRS;
+  h=Math.max(0,Math.min(PAID_HOURS,h));
+  return {money:h*HOURLY,pct:h/PAID_HOURS};
+}
+function completed(now,scope){
+  let total=0; let d=new Date(JOB_START);
+  while(d<now){
+    if(isWorkDay(d)){
+      const s=new Date(d);s.setHours(START,0,0,0);
+      const e=new Date(s);e.setHours(e.getHours()+PAID_HOURS+BREAK_HRS);
+      if(e<=now){
+        if(scope==='week'){
+          const w=new Date(now);w.setDate(w.getDate()-w.getDay());w.setHours(0,0,0,0);
+          if(s<w){d.setDate(d.getDate()+1);continue;}
         }
+        if(scope==='month'&&(s.getMonth()!=now.getMonth()||s.getFullYear()!=now.getFullYear())){
+          d.setDate(d.getDate()+1);continue;
+        }
+        total+=DAILY_NET;
       }
-      d.setDate(d.getDate() + 1);
     }
-
-    return total;
+    d.setDate(d.getDate()+1);
   }
-
-  function update() {
-    const now = new Date();
-    const view = document.getElementById('view').value;
-
-    let total = 0;
-    total = countCompletedShifts(now, view) + getShiftProgress(now);
-
-    const formatted = total.toFixed(5);
-    const [whole, decimals] = formatted.split('.');
-    const main = decimals.slice(0, 2);
-    const minor = decimals.slice(2);
-
-    document.getElementById('money').innerHTML =
-      `£${whole}.${main}<span class="minor">${minor}</span>`;
-  }
-
-  setInterval(update, 100);
-  update();
+  return total;
+}
+function render(){
+  const now=new Date();
+  const view=document.getElementById('view').value;
+  const total=completed(now,view)+progress(now).money;
+  const f=total.toFixed(5).split('.');
+  document.getElementById('money').innerHTML=`£${f[0]}.${f[1].slice(0,2)}<span class="minor">${f[1].slice(2)}</span>`;
+  document.getElementById('progress').style.width=(progress(now).pct*100)+'%';
+  const st=document.getElementById('state');
+  st.textContent=inShift(now)?'IN SHIFT':'OFF SHIFT';
+  st.className='badge '+(inShift(now)?'':'off');
+}
+setInterval(render,100);render();
 </script>
 </body>
 </html>
