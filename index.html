@@ -1,204 +1,831 @@
-from pathlib import Path
-
-html = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Wage Tracker Pro</title>
-  <style>
-    :root{
-      --bg:#0b0f14; --card:#121826; --panel:#0e1422; --accent:#4da3ff; --accent2:#22c55e;
-      --warn:#f59e0b; --danger:#ef4444; --text:#e8eef5; --muted:#9aa4b2; --line:#1f2a44;
-      --chip:#0e1422;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-      background:radial-gradient(1200px 600px at 50% -200px,#1a2336,var(--bg));
-      color:var(--text);
-      min-height:100vh;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Warehouse Wage Console</title>
+<style>
+  /* =========================
+     WAREHOUSE WAGE CONSOLE
+     Industrial / logistics aesthetic
+     ========================= */
 
-    /* Full-screen app (no phone mock) */
-    .app{
-      min-height:100vh;
-      padding:calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 18px);
-      max-width:620px;
-      margin:0 auto;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-    }
+  :root{
+    --bg0:#070a0f;
+    --bg1:#0b1220;
+    --panel0:#0c1424;
+    --panel1:#0f1b31;
+    --ink:#eaf2ff;
+    --muted:#9fb0c8;
+    --muted2:#7f91ad;
 
-    .topbar{display:flex;align-items:center;justify-content:space-between}
-    .title{font-weight:700;letter-spacing:.2px;font-size:20px}
-    .badge{font-size:12px;padding:6px 10px;border-radius:999px;background:rgba(77,163,255,.15);color:var(--accent);border:1px solid rgba(77,163,255,.25)}
-    .badge.off{background:rgba(245,158,11,.12);color:var(--warn);border:1px solid rgba(245,158,11,.28)}
+    --line0:#1c2a44;
+    --line1:#2a3b5d;
 
-    .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
-      border:1px solid var(--line);
-      border-radius:18px;
-      padding:14px;
-      box-shadow:0 18px 50px rgba(0,0,0,.25);
-      backdrop-filter: blur(8px);
-    }
+    --hazard:#f7c948;      /* warning yellow */
+    --hazard2:#ffdd6e;
+    --safety:#22c55e;      /* green */
+    --info:#4da3ff;        /* blue */
+    --danger:#ef4444;      /* red */
+    --steel:#a8b3c7;
 
-    .amount{
-      font-size:52px;
-      font-weight:900;
-      letter-spacing:.4px;
-      text-align:center;
-      margin:4px 0 0;
-    }
-    .minor{font-size:26px;color:var(--accent)}
-    .sub{font-size:14px;color:var(--muted);text-align:center;margin-top:6px}
+    --shadow: 0 22px 70px rgba(0,0,0,.55);
+    --radius: 18px;
+    --radius2: 26px;
 
-    .bar{height:10px;background:#0b1020;border-radius:999px;overflow:hidden;border:1px solid var(--line);margin-top:12px}
-    .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
 
-    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .k{font-size:12px;color:var(--muted)}
-    .v{font-weight:800;font-size:18px;margin-top:4px}
-    .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px}
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(1400px 800px at 20% -10%, rgba(77,163,255,.20), transparent 55%),
+      radial-gradient(1200px 700px at 110% 10%, rgba(34,197,94,.18), transparent 60%),
+      radial-gradient(900px 600px at 60% 120%, rgba(247,201,72,.18), transparent 55%),
+      linear-gradient(180deg, var(--bg0), var(--bg1));
+    overflow-x:hidden;
+  }
 
-    select,input,button{
-      width:100%;
-      padding:12px 14px;
-      border-radius:14px;
-      background:var(--chip);
-      color:var(--text);
-      border:1px solid var(--line);
-      font-size:16px;
-      outline:none;
-    }
-    button{cursor:pointer}
-    button.primary{background:linear-gradient(135deg,var(--accent),#6aa8ff);border:none}
-    button.danger{background:rgba(239,68,68,.12);color:var(--danger);border:1px solid rgba(239,68,68,.35)}
-    button.ghost{background:transparent}
-    .row{display:flex;align-items:center;gap:10px}
-    .row.sp{justify-content:space-between}
-    .sep{height:1px;background:var(--line);margin:10px 0}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{padding:6px 10px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;color:var(--muted)}
-    details>summary{cursor:pointer;color:var(--muted);list-style:none}
-    details>summary::-webkit-details-marker{display:none}
-    details[open]>summary{color:var(--text)}
-    .footer{margin-top:auto;font-size:12px;color:var(--muted);text-align:center;opacity:.9}
+  /* subtle warehouse floor grid */
+  .gridbg{
+    position:fixed; inset:0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+    background-size: 44px 44px;
+    opacity:.08;
+    pointer-events:none;
+    mask-image: radial-gradient(900px 500px at 50% 20%, rgba(0,0,0,1), transparent 70%);
+  }
 
-    /* Watch / narrow screens: tighten spacing */
-    @media (max-width:360px){
-      .amount{font-size:44px}
-      .minor{font-size:22px}
-      .app{padding:calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 14px)}
-    }
-  </style>
+  .wrap{
+    min-height:100vh;
+    padding: calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 22px);
+    display:flex;
+    justify-content:center;
+  }
+
+  .shell{
+    width:min(980px, 100%);
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  /* ======= Top Bar ======= */
+  .topbar{
+    position:sticky;
+    top:0;
+    z-index:5;
+    padding: 10px 0;
+    backdrop-filter: blur(10px);
+  }
+  .topbarInner{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+  }
+
+  .brand{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    min-width:0;
+  }
+
+  .logo{
+    width:44px;height:44px;
+    border-radius: 14px;
+    background:
+      linear-gradient(135deg, rgba(247,201,72,.25), rgba(77,163,255,.18)),
+      radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,.25), transparent 60%);
+    border:1px solid rgba(255,255,255,.12);
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    display:grid; place-items:center;
+    flex:0 0 auto;
+  }
+  .brandText{
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    line-height:1.1;
+  }
+  .brandText .name{
+    font-weight:850;
+    letter-spacing:.3px;
+    font-size:18px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .brandText .tag{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .statusPill{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding: 10px 12px;
+    border-radius: 999px;
+    background: rgba(15,27,49,.65);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    flex:0 0 auto;
+  }
+  .dot{
+    width:10px;height:10px;border-radius:999px;background: var(--hazard);
+    box-shadow: 0 0 0 4px rgba(247,201,72,.12), 0 0 18px rgba(247,201,72,.35);
+  }
+  .dot.on{
+    background: var(--safety);
+    box-shadow: 0 0 0 4px rgba(34,197,94,.14), 0 0 18px rgba(34,197,94,.35);
+  }
+  .statusText{
+    display:flex; flex-direction:column; line-height:1.1;
+  }
+  .statusText .big{
+    font-weight:800; letter-spacing:.2px; font-size:13px;
+  }
+  .statusText .small{
+    font-family:var(--mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+
+  /* ======= Panels ======= */
+  .panel{
+    border-radius: var(--radius2);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.00)),
+      linear-gradient(180deg, rgba(12,20,36,.85), rgba(15,27,49,.85));
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+
+  .panelHeader{
+    padding: 16px 16px 12px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .panelHeader .h{
+    display:flex; flex-direction:column; gap:6px;
+  }
+  .panelHeader .h .title{
+    font-weight:900;
+    font-size:14px;
+    letter-spacing:.8px;
+    color: rgba(234,242,255,.92);
+    text-transform:uppercase;
+  }
+  .panelHeader .h .subtitle{
+    font-family:var(--mono);
+    font-size:12px;
+    color:var(--muted);
+  }
+
+  .panelBody{ padding: 14px 16px 16px; }
+
+  /* ======= Amount (main readout) ======= */
+  .readout{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:12px;
+  }
+
+  .amountRow{
+    display:flex;
+    align-items:baseline;
+    justify-content:center;
+    gap:0;
+    padding: 6px 0 0;
+  }
+  .currency{
+    font-family:var(--mono);
+    font-size:18px;
+    color: rgba(234,242,255,.75);
+    margin-right:6px;
+  }
+  .amtMain{
+    font-size:60px;
+    font-weight:950;
+    letter-spacing:-.8px;
+    line-height:1;
+    text-align:center;
+    text-shadow: 0 18px 40px rgba(0,0,0,.35);
+  }
+  .amtMinor{
+    font-family:var(--mono);
+    font-size:28px;
+    font-weight:800;
+    color: var(--hazard2);
+    margin-left:4px;
+    letter-spacing:.2px;
+  }
+
+  .meter{
+    position:relative;
+    border-radius: 999px;
+    height: 14px;
+    background: rgba(0,0,0,.25);
+    border:1px solid rgba(255,255,255,.10);
+    overflow:hidden;
+  }
+  .meter > i{
+    display:block;
+    height:100%;
+    width:0%;
+    background: linear-gradient(90deg, rgba(77,163,255,.95), rgba(34,197,94,.95));
+    box-shadow: 0 0 30px rgba(77,163,255,.25);
+  }
+  .meterTicks{
+    position:absolute; inset:0;
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgba(255,255,255,.08) 0px,
+      rgba(255,255,255,.08) 1px,
+      transparent 1px,
+      transparent 26px
+    );
+    opacity:.35;
+    pointer-events:none;
+    mix-blend-mode: overlay;
+  }
+  .meterLabel{
+    display:flex;
+    justify-content:space-between;
+    color:var(--muted);
+    font-family:var(--mono);
+    font-size:11px;
+    margin-top:8px;
+  }
+
+  /* ======= KPI Grid ======= */
+  .kpis{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:10px;
+    margin-top:12px;
+  }
+  .kpi{
+    border-radius: var(--radius);
+    background: rgba(0,0,0,.18);
+    border:1px solid rgba(255,255,255,.10);
+    padding: 12px;
+    position:relative;
+    overflow:hidden;
+  }
+  .kpi:before{
+    content:"";
+    position:absolute; inset:-40px -40px auto auto;
+    width:120px;height:120px;
+    background: radial-gradient(circle at 30% 30%, rgba(247,201,72,.22), transparent 60%);
+    transform: rotate(15deg);
+    opacity:.7;
+    pointer-events:none;
+  }
+  .kpi .k{
+    font-size:11px;
+    letter-spacing:.7px;
+    text-transform:uppercase;
+    color: var(--muted);
+  }
+  .kpi .v{
+    margin-top:6px;
+    font-weight:900;
+    font-size:18px;
+    letter-spacing:.2px;
+  }
+  .kpi .note{
+    margin-top:6px;
+    font-family:var(--mono);
+    font-size:11px;
+    color: var(--muted2);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  /* ======= Controls / Form ======= */
+  .controls{
+    display:grid;
+    grid-template-columns: 1.2fr .8fr;
+    gap:10px;
+    margin-top:14px;
+  }
+
+  .select{
+    display:flex; gap:10px; align-items:center;
+    padding: 10px 12px;
+    border-radius: var(--radius);
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.20);
+  }
+  .select label{
+    font-family:var(--mono);
+    font-size:12px;
+    color: var(--muted);
+    white-space:nowrap;
+  }
+  select{
+    flex:1;
+    appearance:none;
+    border:none;
+    outline:none;
+    background: transparent;
+    color: var(--ink);
+    font-weight:750;
+    font-size:14px;
+    padding: 0;
+  }
+  .select .chev{
+    width:18px;height:18px; opacity:.8;
+  }
+
+  .chips{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  .chip{
+    padding: 7px 10px;
+    border-radius: 999px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.20);
+    font-size:12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+  .chip strong{color:rgba(234,242,255,.92); font-weight:850}
+
+  details{
+    border-radius: var(--radius2);
+    border:1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.16);
+    overflow:hidden;
+  }
+  summary{
+    list-style:none;
+    cursor:pointer;
+    padding: 14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    user-select:none;
+  }
+  summary::-webkit-details-marker{display:none}
+  .sumLeft{
+    display:flex; align-items:center; gap:10px; min-width:0;
+  }
+  .sumIcon{
+    width:28px;height:28px;border-radius:12px;
+    background: rgba(77,163,255,.14);
+    border:1px solid rgba(77,163,255,.20);
+    display:grid;place-items:center;
+    flex:0 0 auto;
+  }
+  .sumTitle{
+    font-weight:900;
+    letter-spacing:.6px;
+    text-transform:uppercase;
+    font-size:12px;
+    white-space:nowrap;
+  }
+  .sumMeta{
+    font-family:var(--mono);
+    color:var(--muted);
+    font-size:11px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .sumChevron{width:18px;height:18px;opacity:.85}
+  details[open] summary{
+    border-bottom:1px solid rgba(255,255,255,.10);
+    background: rgba(0,0,0,.12);
+  }
+
+  .drawer{
+    padding: 14px 16px 16px;
+  }
+  .formGrid{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:10px;
+  }
+  .field{
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .field .lbl{
+    font-family:var(--mono);
+    font-size:11px;
+    color: var(--muted);
+    letter-spacing:.2px;
+  }
+  input{
+    width:100%;
+    padding: 12px 12px;
+    border-radius: 14px;
+    border:1px solid rgba(255,255,255,.12);
+    background: rgba(0,0,0,.20);
+    color: var(--ink);
+    outline:none;
+    font-weight:750;
+  }
+  input::placeholder{color: rgba(159,176,200,.55)}
+  .btnRow{
+    display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;
+  }
+  button{
+    flex:1;
+    border:none;
+    border-radius: 16px;
+    padding: 12px 14px;
+    cursor:pointer;
+    font-weight:900;
+    letter-spacing:.4px;
+    color: #09101e;
+  }
+  .btnBlue{
+    background: linear-gradient(135deg, rgba(77,163,255,.95), rgba(146,197,255,.95));
+  }
+  .btnYellow{
+    background: linear-gradient(135deg, rgba(247,201,72,.98), rgba(255,221,110,.98));
+  }
+  .btnRed{
+    background: linear-gradient(135deg, rgba(239,68,68,.96), rgba(255,140,140,.92));
+  }
+  .btnGhost{
+    background: transparent;
+    color: var(--ink);
+    border:1px solid rgba(255,255,255,.18);
+  }
+  .btnSmall{
+    flex:0 0 auto;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-weight:850;
+  }
+
+  .toast{
+    position:fixed;
+    left:50%;
+    bottom: calc(env(safe-area-inset-bottom) + 18px);
+    transform: translateX(-50%) translateY(18px);
+    opacity:0;
+    pointer-events:none;
+    transition: .25s ease;
+    background: rgba(10,16,28,.82);
+    border:1px solid rgba(255,255,255,.14);
+    color: var(--ink);
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-family:var(--mono);
+    font-size:12px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.45);
+    backdrop-filter: blur(10px);
+    max-width:min(520px, calc(100% - 24px));
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .toast.on{opacity:1; transform: translateX(-50%) translateY(0)}
+  .toast b{color: var(--hazard2)}
+
+  /* ======= Responsive ======= */
+  @media (max-width: 860px){
+    .kpis{grid-template-columns: repeat(2, 1fr)}
+    .controls{grid-template-columns: 1fr}
+    .chips{justify-content:flex-start}
+  }
+  @media (max-width: 420px){
+    .amtMain{font-size:52px}
+    .amtMinor{font-size:24px}
+    .formGrid{grid-template-columns: repeat(2, 1fr)}
+  }
+</style>
 </head>
 <body>
-  <div class="app">
+<div class="gridbg"></div>
+
+<div class="wrap">
+  <div class="shell">
+
     <div class="topbar">
-      <div class="title">Wage Tracker Pro</div>
-      <div id="state" class="badge">LIVE</div>
-    </div>
+      <div class="topbarInner">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">
+            <!-- forklift icon -->
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M4 16V7a2 2 0 0 1 2-2h5" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M11 5v11h6" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M17 16v-6a3 3 0 0 0-3-3h-1" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 16v4" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M17 20h3" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="7" cy="18" r="2" stroke="rgba(247,201,72,.95)" stroke-width="2"/>
+              <circle cx="16" cy="18" r="2" stroke="rgba(247,201,72,.95)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div class="brandText">
+            <div class="name">Warehouse Wage Console</div>
+            <div class="tag" id="tagline">Sun–Thu · 21:00–06:00 · Break 01:00–02:00</div>
+          </div>
+        </div>
 
-    <div class="card">
-      <div class="amount" id="money">£0.<span class="minor">00000</span></div>
-      <div class="sub" id="subtitle">Total since start</div>
-      <div class="bar"><i id="progress"></i></div>
-    </div>
-
-    <div class="grid">
-      <div class="tile">
-        <div class="k">Today (current shift)</div>
-        <div class="v" id="today">£0.00</div>
-      </div>
-      <div class="tile">
-        <div class="k">This week</div>
-        <div class="v" id="week">£0.00</div>
-      </div>
-      <div class="tile">
-        <div class="k">This month</div>
-        <div class="v" id="month">£0.00</div>
-      </div>
-      <div class="tile">
-        <div class="k">Shifts worked</div>
-        <div class="v" id="shifts">0</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="row sp">
-        <div class="k">View</div>
-        <select id="view">
-          <option value="all">All time</option>
-          <option value="week">This week</option>
-          <option value="month">This month</option>
-        </select>
-      </div>
-      <div class="sep"></div>
-      <div class="chips">
-        <div class="chip">Sun–Thu</div>
-        <div class="chip">9pm–6am</div>
-        <div class="chip">1h unpaid</div>
-        <div class="chip" id="rateChip">£91.30/shift</div>
+        <div class="statusPill" title="Shift status">
+          <div id="dot" class="dot"></div>
+          <div class="statusText">
+            <div id="statusBig" class="big">OFF SHIFT</div>
+            <div id="statusSmall" class="small">No accrual</div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <details class="card">
-      <summary>Settings</summary>
-      <div class="sep"></div>
-      <div class="grid">
-        <label class="k">Daily net (£)
-          <input id="daily" type="number" step="0.01" inputmode="decimal" />
-        </label>
-        <label class="k">Paid hours
-          <input id="hours" type="number" step="0.1" inputmode="decimal" />
-        </label>
-        <label class="k">Start hour (0–23)
-          <input id="start" type="number" min="0" max="23" inputmode="numeric" />
-        </label>
-        <label class="k">End hour (0–23)
-          <input id="end" type="number" min="0" max="23" inputmode="numeric" />
-        </label>
+    <!-- MAIN PANEL -->
+    <div class="panel">
+      <div class="panelHeader">
+        <div class="h">
+          <div class="title">Net Earnings</div>
+          <div class="subtitle" id="subtitle">All time · Includes overtime & deductions</div>
+        </div>
+        <div class="chips">
+          <div class="chip"><strong id="chipDaily">£91.30</strong>/shift</div>
+          <div class="chip"><strong id="chipHourly">£11.41</strong>/hr</div>
+          <div class="chip">Local time</div>
+        </div>
       </div>
-      <div class="sep"></div>
-      <button class="primary" id="save">Save</button>
-      <div style="height:10px"></div>
-      <button class="danger" id="reset">Reset totals (set start = tonight)</button>
+
+      <div class="panelBody">
+        <div class="readout">
+          <div class="amountRow" aria-live="polite">
+            <div class="currency">£</div>
+            <div class="amtMain" id="amtMain">0</div>
+            <div class="amtMinor" id="amtMinor">.00000</div>
+          </div>
+
+          <div class="meter" aria-label="Shift progress">
+            <i id="meterFill"></i>
+            <div class="meterTicks"></div>
+          </div>
+          <div class="meterLabel">
+            <span id="meterLeft">0% shift</span>
+            <span id="meterRight">£0.00 this shift</span>
+          </div>
+        </div>
+
+        <div class="kpis" style="margin-top:14px">
+          <div class="kpi">
+            <div class="k">Today (current shift)</div>
+            <div class="v" id="kToday">£0.00</div>
+            <div class="note" id="kTodayNote">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k">This Week</div>
+            <div class="v" id="kWeek">£0.00</div>
+            <div class="note" id="kWeekNote">Sun–Sat window</div>
+          </div>
+          <div class="kpi">
+            <div class="k">This Month</div>
+            <div class="v" id="kMonth">£0.00</div>
+            <div class="note" id="kMonthNote">Calendar month</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Shifts Completed</div>
+            <div class="v" id="kShifts">0</div>
+            <div class="note" id="kShiftsNote">Since start date</div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <div class="select">
+            <label for="view">View</label>
+            <select id="view">
+              <option value="all">All time</option>
+              <option value="week">This week</option>
+              <option value="month">This month</option>
+            </select>
+            <svg class="chev" viewBox="0 0 24 24" fill="none">
+              <path d="M7 10l5 5 5-5" stroke="rgba(234,242,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+
+          <div class="chips">
+            <div class="chip">OT: <strong id="chipOT">£0.00</strong></div>
+            <div class="chip">Deduct: <strong id="chipDed">£0.00</strong></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRAWERS -->
+    <details class="panel" id="drawerOT">
+      <summary>
+        <div class="sumLeft">
+          <div class="sumIcon" aria-hidden="true">
+            <!-- stopwatch -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M10 2h4" stroke="rgba(234,242,255,.9)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 14l3-3" stroke="rgba(247,201,72,.95)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 6a8 8 0 1 0 8 8" stroke="rgba(234,242,255,.9)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 6l2-2" stroke="rgba(234,242,255,.9)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div style="min-width:0">
+            <div class="sumTitle">Overtime Input</div>
+            <div class="sumMeta">Add overtime by hours & minutes at a chosen rate</div>
+          </div>
+        </div>
+        <svg class="sumChevron" viewBox="0 0 24 24" fill="none">
+          <path d="M7 10l5 5 5-5" stroke="rgba(234,242,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      <div class="drawer">
+        <div class="formGrid">
+          <div class="field">
+            <div class="lbl">OT HOURS</div>
+            <input id="otH" type="number" min="0" placeholder="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="lbl">OT MINUTES</div>
+            <input id="otM" type="number" min="0" max="59" placeholder="0" inputmode="numeric" />
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <div class="lbl">OT RATE (£/HR)</div>
+            <input id="otR" type="number" step="0.01" placeholder="e.g. 15.00" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="btnRow">
+          <button class="btnYellow" id="addOT">ADD OVERTIME</button>
+          <button class="btnGhost btnSmall" id="clearOT" title="Clear overtime total">Clear OT</button>
+        </div>
+      </div>
     </details>
 
-    <details class="card">
-      <summary>Export</summary>
-      <div class="sep"></div>
-      <button class="ghost" id="csv">Export CSV</button>
+    <details class="panel" id="drawerDed">
+      <summary>
+        <div class="sumLeft">
+          <div class="sumIcon" aria-hidden="true" style="background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.20);">
+            <!-- minus -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M6 12h12" stroke="rgba(255,255,255,.92)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div style="min-width:0">
+            <div class="sumTitle">Deductions</div>
+            <div class="sumMeta">Deduct full days or hours/minutes (net)</div>
+          </div>
+        </div>
+        <svg class="sumChevron" viewBox="0 0 24 24" fill="none">
+          <path d="M7 10l5 5 5-5" stroke="rgba(234,242,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      <div class="drawer">
+        <div class="formGrid">
+          <div class="field">
+            <div class="lbl">DEDUCT DAYS</div>
+            <input id="dedD" type="number" min="0" placeholder="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="lbl">DEDUCT HOURS</div>
+            <input id="dedH" type="number" min="0" placeholder="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="lbl">DEDUCT MINUTES</div>
+            <input id="dedM" type="number" min="0" max="59" placeholder="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="lbl">REASON (optional)</div>
+            <input id="dedReason" type="text" placeholder="e.g. unpaid leave" />
+          </div>
+        </div>
+        <div class="btnRow">
+          <button class="btnRed" id="applyDed">APPLY DEDUCTION</button>
+          <button class="btnGhost btnSmall" id="clearDed" title="Clear deductions total">Clear Ded</button>
+        </div>
+      </div>
     </details>
 
-    <div class="footer">Local-time accurate · Settings saved on-device · Netlify-ready</div>
+    <details class="panel" id="drawerCfg">
+      <summary>
+        <div class="sumLeft">
+          <div class="sumIcon" aria-hidden="true">
+            <!-- sliders -->
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M4 21v-7" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M4 10V3" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 21v-9" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M12 8V3" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 21v-5" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <path d="M20 12V3" stroke="rgba(234,242,255,.92)" stroke-width="2" stroke-linecap="round"/>
+              <circle cx="4" cy="12" r="2" stroke="rgba(247,201,72,.95)" stroke-width="2"/>
+              <circle cx="12" cy="10" r="2" stroke="rgba(247,201,72,.95)" stroke-width="2"/>
+              <circle cx="20" cy="14" r="2" stroke="rgba(247,201,72,.95)" stroke-width="2"/>
+            </svg>
+          </div>
+          <div style="min-width:0">
+            <div class="sumTitle">Shift Config</div>
+            <div class="sumMeta" id="cfgMeta">Daily net, shift times, and start date</div>
+          </div>
+        </div>
+        <svg class="sumChevron" viewBox="0 0 24 24" fill="none">
+          <path d="M7 10l5 5 5-5" stroke="rgba(234,242,255,.85)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      <div class="drawer">
+        <div class="formGrid">
+          <div class="field">
+            <div class="lbl">DAILY NET (£)</div>
+            <input id="cfgDaily" type="number" step="0.01" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <div class="lbl">PAID HOURS</div>
+            <input id="cfgPaid" type="number" step="0.1" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <div class="lbl">START HOUR (0–23)</div>
+            <input id="cfgStart" type="number" min="0" max="23" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <div class="lbl">END HOUR (0–23)</div>
+            <input id="cfgEnd" type="number" min="0" max="23" inputmode="numeric" />
+          </div>
+          <div class="field" style="grid-column: span 2;">
+            <div class="lbl">JOB START (LOCAL) — YYYY-MM-DD</div>
+            <input id="cfgStartDate" type="date" />
+          </div>
+          <div class="field">
+            <div class="lbl">START TIME (HH:MM)</div>
+            <input id="cfgStartTime" type="time" />
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button class="btnBlue" id="saveCfg">SAVE CONFIG</button>
+          <button class="btnGhost btnSmall" id="resetStart">Reset Start → Tonight</button>
+          <button class="btnGhost btnSmall" id="exportCSV">Export CSV</button>
+        </div>
+      </div>
+    </details>
+
+    <div style="padding: 0 6px; color: var(--muted); font-family: var(--mono); font-size: 11px; text-align:center;">
+      Counts base pay only during paid hours · Break hard-pauses 01:00–02:00 · OT & deductions persist on-device
+    </div>
   </div>
+</div>
+
+<div id="toast" class="toast">Saved.</div>
 
 <script>
-  // ===== CONFIG (persisted) =====
+  // =========================
+  // DATA MODEL (persistent)
+  // =========================
   const defaults = {
     daily: 91.30,
     paidHours: 8,
-    start: 21,           // 9pm
-    end: 6,              // 6am
     breakHrs: 1,
-    // Job start: Sunday 1 Feb 2026 at 21:00 (LOCAL TIME)
-    jobStart: [2026, 1, 1, 21, 0, 0]
+    start: 21,   // 9pm
+    end: 6,      // 6am
+    breakStartHour: 1, // 1am
+    jobStart: [2026, 1, 1, 21, 0, 0], // 1 Feb 2026 21:00 local (month is 0-indexed)
+    otTotal: 0,
+    dedTotal: 0
   };
 
-  const cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem('cfg') || '{}'));
+  const cfg = Object.assign({}, defaults, JSON.parse(localStorage.getItem('wwc_cfg') || '{}'));
+  // keep totals separate keys for backward compatibility
+  cfg.otTotal = Number(localStorage.getItem('wwc_otTotal') || cfg.otTotal || 0);
+  cfg.dedTotal = Number(localStorage.getItem('wwc_dedTotal') || cfg.dedTotal || 0);
 
-  const DAILY = () => cfg.daily;
-  const HOURLY = () => cfg.daily / cfg.paidHours;
+  const DAILY = () => Number(cfg.daily);
+  const PAID_HOURS = () => Number(cfg.paidHours);
+  const HOURLY = () => DAILY() / PAID_HOURS();
   const JOB_START = () => new Date(...cfg.jobStart);
 
+  // =========================
+  // TIME HELPERS
+  // =========================
   const isWorkDay = (date) => {
-    const d = date.getDay();          // 0=Sun ... 6=Sat
-    return d >= 0 && d <= 4;          // Sun–Thu
+    const d = date.getDay();     // 0 Sun ... 6 Sat
+    return d >= 0 && d <= 4;     // Sun–Thu
   };
 
   const startOfWeek = (now) => {
@@ -211,10 +838,20 @@ html = """<!DOCTYPE html>
   function shiftWindow(now) {
     const s = new Date(now);
     s.setHours(cfg.start, 0, 0, 0);
-    if (now.getHours() < cfg.end) s.setDate(s.getDate() - 1); // after midnight
+    if (now.getHours() < cfg.end) s.setDate(s.getDate() - 1);
     const e = new Date(s);
-    e.setHours(e.getHours() + cfg.paidHours + cfg.breakHrs);
+    e.setHours(e.getHours() + PAID_HOURS() + Number(cfg.breakHrs));
     return { s, e };
+  }
+
+  function breakWindow(shiftStart) {
+    // Anchored to clock time (breakStartHour:00 to +breakHrs hours), on the same overnight span.
+    const bS = new Date(shiftStart);
+    bS.setHours(Number(cfg.breakStartHour), 0, 0, 0);
+    if (bS < shiftStart) bS.setDate(bS.getDate() + 1);
+    const bE = new Date(bS);
+    bE.setHours(bE.getHours() + Number(cfg.breakHrs));
+    return { bS, bE };
   }
 
   function inShift(now) {
@@ -223,16 +860,23 @@ html = """<!DOCTYPE html>
   }
 
   function shiftProgress(now) {
-    if (!inShift(now)) return { money: 0, pct: 0 };
+    if (!inShift(now)) return { money: 0, pct: 0, paidHours: 0, onBreak: false };
+
     const { s } = shiftWindow(now);
-    const elapsedHours = (now - s) / 3600000;
+    const { bS, bE } = breakWindow(s);
 
-    // Break occurs after 4 hours from shift start
-    let paidElapsed = elapsedHours;
-    if (elapsedHours > 4) paidElapsed -= cfg.breakHrs;
+    let paidMs = 0;
 
-    paidElapsed = Math.max(0, Math.min(cfg.paidHours, paidElapsed));
-    return { money: paidElapsed * HOURLY(), pct: paidElapsed / cfg.paidHours };
+    // paid block before break
+    if (now > s) paidMs += Math.max(0, Math.min(now, bS) - s);
+
+    // paid block after break
+    if (now > bE) paidMs += Math.max(0, now - bE);
+
+    const paidHours = Math.max(0, Math.min(PAID_HOURS(), paidMs / 3600000));
+    const onBreak = now >= bS && now < bE;
+
+    return { money: paidHours * HOURLY(), pct: paidHours / PAID_HOURS(), paidHours, onBreak };
   }
 
   function completedTotals(now, scope) {
@@ -240,14 +884,14 @@ html = """<!DOCTYPE html>
     let shifts = 0;
 
     let d = new Date(JOB_START());
-    d.setHours(0,0,0,0); // iterate by day safely
+    d.setHours(0,0,0,0);
 
     while (d < now) {
       if (isWorkDay(d)) {
         const s = new Date(d);
         s.setHours(cfg.start, 0, 0, 0);
         const e = new Date(s);
-        e.setHours(e.getHours() + cfg.paidHours + cfg.breakHrs);
+        e.setHours(e.getHours() + PAID_HOURS() + Number(cfg.breakHrs));
 
         if (e <= now) {
           if (scope === 'week' && s < startOfWeek(now)) { d.setDate(d.getDate() + 1); continue; }
@@ -263,114 +907,259 @@ html = """<!DOCTYPE html>
     return { total, shifts };
   }
 
-  // ===== UI =====
-  const moneyEl = document.getElementById('money');
-  const progressEl = document.getElementById('progress');
-  const stateEl = document.getElementById('state');
-  const subtitleEl = document.getElementById('subtitle');
+  // =========================
+  // UI HELPERS
+  // =========================
+  const $ = (id) => document.getElementById(id);
 
-  function render() {
-    const now = new Date();
-    const view = document.getElementById('view').value;
-
-    const base = completedTotals(now, view);
-    const live = shiftProgress(now);
-    const total = base.total + live.money;
-
-    const formatted = total.toFixed(5);
-    const [whole, decimals] = formatted.split('.');
-    const main = decimals.slice(0, 2);
-    const minor = decimals.slice(2);
-    moneyEl.innerHTML = `£${whole}.${main}<span class="minor">${minor}</span>`;
-
-    progressEl.style.width = (live.pct * 100) + '%';
-
-    const on = inShift(now);
-    stateEl.className = 'badge ' + (on ? '' : 'off');
-    stateEl.textContent = on ? 'IN SHIFT' : 'OFF SHIFT';
-
-    subtitleEl.textContent = (view === 'all') ? 'Total since start' : (view === 'week') ? 'This week' : 'This month';
-
-    // Tiles
-    document.getElementById('today').textContent = '£' + (on ? live.money.toFixed(2) : '0.00');
-    document.getElementById('week').textContent  = '£' + completedTotals(now, 'week').total.toFixed(2);
-    document.getElementById('month').textContent = '£' + completedTotals(now, 'month').total.toFixed(2);
-
-    const all = completedTotals(now, 'all');
-    document.getElementById('shifts').textContent = all.shifts;
-    document.getElementById('rateChip').textContent = '£' + DAILY().toFixed(2) + '/shift';
+  function moneyParts(amount) {
+    const formatted = amount.toFixed(5);
+    const [whole, dec] = formatted.split('.');
+    return { whole, dec };
   }
 
-  // ===== SETTINGS =====
-  const dailyI = document.getElementById('daily');
-  const hoursI = document.getElementById('hours');
-  const startI = document.getElementById('start');
-  const endI   = document.getElementById('end');
-
-  function loadSettingsUI(){
-    dailyI.value = cfg.daily;
-    hoursI.value = cfg.paidHours;
-    startI.value = cfg.start;
-    endI.value   = cfg.end;
+  function fmtGBP(n) {
+    return "£" + Number(n).toFixed(2);
   }
-  loadSettingsUI();
 
-  document.getElementById('save').onclick = () => {
-    cfg.daily = Number(dailyI.value);
-    cfg.paidHours = Number(hoursI.value);
-    cfg.start = Number(startI.value);
-    cfg.end = Number(endI.value);
+  function toast(msg) {
+    const t = $("toast");
+    t.innerHTML = msg;
+    t.classList.add("on");
+    clearTimeout(toast._tm);
+    toast._tm = setTimeout(()=>t.classList.remove("on"), 1800);
+  }
 
-    localStorage.setItem('cfg', JSON.stringify(cfg));
-    render();
+  function syncChips() {
+    $("chipDaily").textContent = "£" + DAILY().toFixed(2);
+    $("chipHourly").textContent = "£" + HOURLY().toFixed(2);
+    $("chipOT").textContent = fmtGBP(cfg.otTotal);
+    $("chipDed").textContent = fmtGBP(cfg.dedTotal);
+    $("chipOT").style.color = "rgba(234,242,255,.92)";
+    $("chipDed").style.color = "rgba(234,242,255,.92)";
+    $("tagline").textContent = `Sun–Thu · ${String(cfg.start).padStart(2,'0')}:00–${String(cfg.end).padStart(2,'0')}:00 · Break ${String(cfg.breakStartHour).padStart(2,'0')}:00–${String((Number(cfg.breakStartHour)+Number(cfg.breakHrs))%24).padStart(2,'0')}:00`;
+  }
+
+  function persist() {
+    localStorage.setItem("wwc_cfg", JSON.stringify({
+      daily: cfg.daily,
+      paidHours: cfg.paidHours,
+      breakHrs: cfg.breakHrs,
+      start: cfg.start,
+      end: cfg.end,
+      breakStartHour: cfg.breakStartHour,
+      jobStart: cfg.jobStart
+    }));
+    localStorage.setItem("wwc_otTotal", String(cfg.otTotal));
+    localStorage.setItem("wwc_dedTotal", String(cfg.dedTotal));
+  }
+
+  // =========================
+  // ACTIONS: OT & DEDUCTIONS
+  // =========================
+  $("addOT").onclick = () => {
+    const h = Number($("otH").value || 0);
+    const m = Number($("otM").value || 0);
+    const r = Number($("otR").value || 0);
+    const hours = h + (m / 60);
+    const add = hours * r;
+
+    if (!isFinite(add) || add <= 0) { toast("No OT added."); return; }
+
+    cfg.otTotal += add;
+    persist();
+    $("otH").value = "";
+    $("otM").value = "";
+    toast(`Overtime added: <b>${fmtGBP(add)}</b>`);
+    syncChips();
   };
 
-  document.getElementById('reset').onclick = () => {
-    // Reset totals by setting jobStart to tonight's shift start (local time)
-    if (!confirm('Reset totals by setting the start date to tonight?')) return;
+  $("clearOT").onclick = () => {
+    cfg.otTotal = 0;
+    persist();
+    toast("Overtime cleared.");
+    syncChips();
+  };
+
+  $("applyDed").onclick = () => {
+    const d = Number($("dedD").value || 0);
+    const h = Number($("dedH").value || 0);
+    const m = Number($("dedM").value || 0);
+    const reason = ($("dedReason").value || "").trim();
+
+    const amount = (d * DAILY()) + (h + m / 60) * HOURLY();
+    if (!isFinite(amount) || amount <= 0) { toast("No deduction applied."); return; }
+
+    cfg.dedTotal += amount;
+    persist();
+
+    $("dedD").value = "";
+    $("dedH").value = "";
+    $("dedM").value = "";
+    $("dedReason").value = "";
+
+    toast(`Deduction applied: <b>${fmtGBP(amount)}</b>${reason ? " · " + reason : ""}`);
+    syncChips();
+  };
+
+  $("clearDed").onclick = () => {
+    cfg.dedTotal = 0;
+    persist();
+    toast("Deductions cleared.");
+    syncChips();
+  };
+
+  // =========================
+  // CONFIG UI
+  // =========================
+  function loadConfigUI() {
+    $("cfgDaily").value = Number(cfg.daily).toFixed(2);
+    $("cfgPaid").value = String(cfg.paidHours);
+    $("cfgStart").value = String(cfg.start);
+    $("cfgEnd").value = String(cfg.end);
+
+    // job start date/time
+    const js = JOB_START();
+    const yyyy = js.getFullYear();
+    const mm = String(js.getMonth()+1).padStart(2,'0');
+    const dd = String(js.getDate()).padStart(2,'0');
+    $("cfgStartDate").value = `${yyyy}-${mm}-${dd}`;
+    $("cfgStartTime").value = `${String(js.getHours()).padStart(2,'0')}:${String(js.getMinutes()).padStart(2,'0')}`;
+
+    $("cfgMeta").textContent = `Daily £${Number(cfg.daily).toFixed(2)} · Start ${cfg.start}:00 · End ${cfg.end}:00 · From ${yyyy}-${mm}-${dd} ${$("cfgStartTime").value}`;
+  }
+
+  $("saveCfg").onclick = () => {
+    const daily = Number($("cfgDaily").value);
+    const paid = Number($("cfgPaid").value);
+    const start = Number($("cfgStart").value);
+    const end = Number($("cfgEnd").value);
+    const dateStr = $("cfgStartDate").value;
+    const timeStr = $("cfgStartTime").value || "21:00";
+
+    if (!isFinite(daily) || daily <= 0) { toast("Invalid daily net."); return; }
+    if (!isFinite(paid) || paid <= 0 || paid > 16) { toast("Invalid paid hours."); return; }
+    if (!isFinite(start) || start < 0 || start > 23) { toast("Invalid start hour."); return; }
+    if (!isFinite(end) || end < 0 || end > 23) { toast("Invalid end hour."); return; }
+    if (!dateStr) { toast("Set a start date."); return; }
+
+    const [Y,M,D] = dateStr.split("-").map(Number);
+    const [HH,MM] = timeStr.split(":").map(Number);
+
+    cfg.daily = daily;
+    cfg.paidHours = paid;
+    cfg.start = start;
+    cfg.end = end;
+    cfg.jobStart = [Y, (M-1), D, HH, MM || 0, 0];
+
+    persist();
+    loadConfigUI();
+    syncChips();
+    toast("Config saved.");
+  };
+
+  $("resetStart").onclick = () => {
     const now = new Date();
-    const start = new Date(now);
-    start.setHours(cfg.start, 0, 0, 0);
-    if (now.getHours() < cfg.start) {
-      // before shift start today -> use today at start time
-    } else {
-      // after shift start -> keep today at start time
-    }
-    cfg.jobStart = [start.getFullYear(), start.getMonth(), start.getDate(), cfg.start, 0, 0];
-    localStorage.setItem('cfg', JSON.stringify(cfg));
-    render();
+    const s = new Date(now);
+    s.setHours(cfg.start, 0, 0, 0);
+    // "Tonight" = today at start hour
+    cfg.jobStart = [s.getFullYear(), s.getMonth(), s.getDate(), s.getHours(), s.getMinutes(), 0];
+    persist();
+    loadConfigUI();
+    toast("Start reset to tonight.");
   };
 
-  // ===== EXPORT =====
-  document.getElementById('csv').onclick = () => {
+  $("exportCSV").onclick = () => {
     const now = new Date();
     const js = JOB_START();
     let d = new Date(js);
     d.setHours(0,0,0,0);
 
-    const rows = ['date,amount'];
+    const rows = [
+      "date,base_shift_amount,overtime_total,deductions_total"
+    ];
+
+    // Export completed shifts as daily lines. OT/ded are totals (not per-day) by design.
     while (d < now) {
       if (isWorkDay(d)) {
         const s = new Date(d); s.setHours(cfg.start, 0, 0, 0);
-        const e = new Date(s); e.setHours(e.getHours() + cfg.paidHours + cfg.breakHrs);
-        if (e <= now) rows.push(`${d.toISOString().slice(0,10)},${DAILY().toFixed(2)}`);
+        const e = new Date(s); e.setHours(e.getHours() + PAID_HOURS() + Number(cfg.breakHrs));
+        if (e <= now) {
+          rows.push(`${d.toISOString().slice(0,10)},${DAILY().toFixed(2)},,`);
+        }
       }
       d.setDate(d.getDate() + 1);
     }
 
-    const blob = new Blob([rows.join('\\n')], { type: 'text/csv' });
-    const a = document.createElement('a');
+    rows.push(`TOTALS,,${cfg.otTotal.toFixed(2)},${cfg.dedTotal.toFixed(2)}`);
+
+    const blob = new Blob([rows.join("\n")], { type: "text/csv" });
+    const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = 'wages.csv';
+    a.download = "warehouse_wages.csv";
     a.click();
+    toast("CSV exported.");
   };
+
+  // =========================
+  // RENDER LOOP
+  // =========================
+  function render() {
+    const now = new Date();
+    const view = $("view").value;
+
+    const base = completedTotals(now, view);
+    const live = shiftProgress(now);
+
+    const net = base.total + live.money + cfg.otTotal - cfg.dedTotal;
+
+    const parts = moneyParts(net);
+    $("amtMain").textContent = parts.whole;
+    $("amtMinor").textContent = "." + parts.dec;
+
+    // meter
+    $("meterFill").style.width = (live.pct * 100).toFixed(2) + "%";
+    $("meterLeft").textContent = `${Math.round(live.pct * 100)}% shift`;
+    $("meterRight").textContent = fmtGBP(live.money) + (live.onBreak ? " · on break" : " this shift");
+
+    // status pill
+    const on = inShift(now);
+    $("dot").classList.toggle("on", on && !live.onBreak);
+    $("statusBig").textContent = on ? (live.onBreak ? "ON BREAK" : "IN SHIFT") : "OFF SHIFT";
+    $("statusSmall").textContent = on ? (live.onBreak ? "01:00–02:00 pause" : "Accruing pay") : "No accrual";
+
+    // subtitle
+    $("subtitle").textContent = (view === "all")
+      ? "All time · Includes overtime & deductions"
+      : (view === "week")
+        ? "This week · Includes overtime & deductions"
+        : "This month · Includes overtime & deductions";
+
+    // KPIs
+    $("kToday").textContent = fmtGBP(on ? live.money : 0);
+    $("kTodayNote").textContent = on ? (live.onBreak ? "Break window active" : `Paid hours: ${live.paidHours.toFixed(2)} / ${PAID_HOURS().toFixed(2)}`) : "Not currently in shift";
+
+    $("kWeek").textContent = fmtGBP(completedTotals(now, "week").total);
+    $("kMonth").textContent = fmtGBP(completedTotals(now, "month").total);
+
+    const all = completedTotals(now, "all");
+    $("kShifts").textContent = String(all.shifts);
+
+    // chips totals
+    $("chipOT").textContent = fmtGBP(cfg.otTotal);
+    $("chipDed").textContent = fmtGBP(cfg.dedTotal);
+
+    // in drawer meta
+    const js = JOB_START();
+    $("cfgMeta").textContent = `Daily £${DAILY().toFixed(2)} · Start ${cfg.start}:00 · End ${cfg.end}:00 · From ${js.getFullYear()}-${String(js.getMonth()+1).padStart(2,'0')}-${String(js.getDate()).padStart(2,'0')} ${String(js.getHours()).padStart(2,'0')}:${String(js.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // Init
+  syncChips();
+  loadConfigUI();
 
   setInterval(render, 100);
   render();
 </script>
 </body>
 </html>
-"""
-path = Path("/mnt/data/WageTracker_Pro_FullScreen.html")
-path.write_text(html, encoding="utf-8")
-str(path)
