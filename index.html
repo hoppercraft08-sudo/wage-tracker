@@ -2,38 +2,312 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Warehouse Wage Console – Fixed Deductions</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Warehouse Wage Console</title>
+
 <style>
-body{margin:0;background:#0b1220;color:#eaf2ff;font-family:system-ui}
-.panel{background:#0f1b31;margin:12px;padding:16px;border-radius:18px}
-.amount{font-size:44px;font-weight:900}
-.minor{color:#ffdd6e}
-.kpi{margin-top:8px;font-size:14px}
-input,button{padding:10px;border-radius:10px;border:none;margin:4px 0}
-button{background:#ef4444;color:white;font-weight:700}
+:root{
+ --bg:#0c0c0c;
+ --panel:#151515;
+ --panel2:#1c1c1c;
+ --accent:#ff7a00;
+ --accent-soft:rgba(255,122,0,0.15);
+ --text:#f5f5f5;
+ --muted:#9e9e9e;
+ --danger:#ff3b30;
+ --green:#22c55e;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+ background:linear-gradient(180deg,#000,#0c0c0c);
+ color:var(--text);
+}
+.wrapper{
+ max-width:720px;
+ margin:0 auto;
+ padding:20px 16px 40px;
+}
+.header{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin-bottom:20px;
+}
+.title{
+ font-weight:900;
+ letter-spacing:1px;
+ font-size:18px;
+ text-transform:uppercase;
+}
+.status{
+ padding:6px 12px;
+ border-radius:999px;
+ font-size:12px;
+ font-weight:700;
+ background:var(--accent-soft);
+ color:var(--accent);
+}
+.panel{
+ background:var(--panel);
+ border-radius:18px;
+ padding:20px;
+ margin-bottom:18px;
+ box-shadow:0 10px 30px rgba(0,0,0,0.5);
+}
+.amount{
+ font-size:48px;
+ font-weight:900;
+ letter-spacing:-1px;
+}
+.minor{
+ color:var(--accent);
+ font-size:24px;
+}
+.kpi{
+ margin-top:8px;
+ font-size:14px;
+ color:var(--muted);
+}
+.grid{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px;
+}
+input{
+ width:100%;
+ padding:12px;
+ border-radius:12px;
+ border:none;
+ background:var(--panel2);
+ color:var(--text);
+ font-weight:600;
+}
+button{
+ padding:12px;
+ border-radius:12px;
+ border:none;
+ font-weight:800;
+ cursor:pointer;
+}
+.btn-orange{
+ background:var(--accent);
+ color:black;
+}
+.btn-red{
+ background:var(--danger);
+ color:white;
+}
+.btn-green{
+ background:var(--green);
+ color:black;
+}
+.section-title{
+ font-weight:800;
+ font-size:14px;
+ margin-bottom:10px;
+ text-transform:uppercase;
+ letter-spacing:1px;
+ color:var(--accent);
+}
+.small{
+ font-size:12px;
+ color:var(--muted);
+}
 </style>
 </head>
 <body>
-
-<div class="panel">
-  <div class="amount" id="total">£0.<span class="minor">00000</span></div>
-  <div class="kpi">This week: <span id="week">£0.00</span></div>
-  <div class="kpi">This month: <span id="month">£0.00</span></div>
-  <div class="kpi">Shifts (net): <span id="shifts">0.00</span></div>
+<div class="wrapper">
+<div class="header">
+ <div class="title">Warehouse Wage Console</div>
+ <div id="status" class="status">OFF SHIFT</div>
 </div>
 
 <div class="panel">
-  <h3>Deductions</h3>
-  Days <input id="dD" type="number" min="0"><br>
-  Hours <input id="dH" type="number" min="0"><br>
-  Minutes <input id="dM" type="number" min="0" max="59"><br>
-  <button id="deduct">Apply deduction</button>
+ <div class="amount" id="total">£0.<span class="minor">00000</span></div>
+ <div class="kpi">This week: <span id="week">£0.00</span></div>
+ <div class="kpi">This month: <span id="month">£0.00</span></div>
+ <div class="kpi">Shifts (net): <span id="shifts">0.00</span></div>
+</div>
+
+<div class="panel">
+ <div class="section-title">Overtime</div>
+ <div class="grid">
+   <input id="otH" type="number" placeholder="Hours">
+   <input id="otM" type="number" placeholder="Minutes">
+   <input id="otR" type="number" placeholder="Rate £/hr">
+   <button class="btn-orange" id="addOT">Add OT</button>
+ </div>
+</div>
+
+<div class="panel">
+ <div class="section-title">Deductions</div>
+ <div class="grid">
+   <input id="dedD" type="number" placeholder="Days">
+   <input id="dedH" type="number" placeholder="Hours">
+   <input id="dedM" type="number" placeholder="Minutes">
+   <button class="btn-red" id="applyDed">Apply Deduction</button>
+ </div>
+</div>
+
+<div class="panel">
+ <div class="section-title">Shift Config</div>
+ <div class="grid">
+   <input id="cfgDaily" type="number" step="0.01" placeholder="Daily net">
+   <input id="cfgPaid" type="number" step="0.1" placeholder="Paid hours">
+   <button class="btn-green" id="saveCfg">Save Config</button>
+ </div>
+ <div class="small">Default: £91.30 · 8 paid hours · Sun–Thu 9pm–6am · Break 1–2am</div>
+</div>
 </div>
 
 <script>
-const DAILY=91.30, PAID_HOURS=8, HOURLY=DAILY/PAID_HOURS;
-const START=21, END=6, BREAK=1;
+let cfg = JSON.parse(localStorage.getItem("ww_cfg")||"{}");
+
+if(!cfg.daily){
+ cfg={
+ daily:91.30,
+ paid:8,
+ start:21,
+ end:6,
+ breakStart:1,
+ breakHrs:1,
+ jobStart:[2026,1,1,21,0,0],
+ ot:0,
+ dedMoney:0,
+ dedHours:0
+ };
+}
+
+function save(){localStorage.setItem("ww_cfg",JSON.stringify(cfg));}
+
+const DAILY=()=>cfg.daily;
+const PAID=()=>cfg.paid;
+const HOURLY=()=>DAILY()/PAID();
+const JOB=()=>new Date(...cfg.jobStart);
+
+function isWorkDay(d){return d.getDay()<=4}
+
+function shiftWindow(now){
+ const s=new Date(now);
+ s.setHours(cfg.start,0,0,0);
+ if(now.getHours()<cfg.end)s.setDate(s.getDate()-1);
+ const e=new Date(s);
+ e.setHours(e.getHours()+PAID()+cfg.breakHrs);
+ return{s,e};
+}
+
+function breakWindow(s){
+ const bS=new Date(s);
+ bS.setHours(cfg.breakStart,0,0,0);
+ if(bS<s)bS.setDate(bS.getDate()+1);
+ const bE=new Date(bS);
+ bE.setHours(bE.getHours()+cfg.breakHrs);
+ return{bS,bE};
+}
+
+function shiftProgress(now){
+ if(!inShift(now))return{money:0};
+ const{s}=shiftWindow(now);
+ const{bS,bE}=breakWindow(s);
+ let paidMs=0;
+ if(now>s)paidMs+=Math.max(0,Math.min(now,bS)-s);
+ if(now>bE)paidMs+=Math.max(0,now-bE);
+ return{money:(paidMs/3600000)*HOURLY()};
+}
+
+function inShift(now){
+ const{s,e}=shiftWindow(now);
+ return isWorkDay(s)&&now>=s&&now<=e;
+}
+
+function completed(now){
+ let money=0,shifts=0;
+ let d=new Date(JOB());
+ while(d<now){
+  if(isWorkDay(d)){
+   const s=new Date(d);s.setHours(cfg.start,0,0,0);
+   const e=new Date(s);e.setHours(e.getHours()+PAID()+cfg.breakHrs);
+   if(e<=now){money+=DAILY();shifts++;}
+  }
+  d.setDate(d.getDate()+1);
+ }
+ return{money,shifts};
+}
+
+function weekMonth(now){
+ let w=0,m=0;
+ const ws=new Date(now);ws.setDate(now.getDate()-now.getDay());ws.setHours(0,0,0,0);
+ let d=new Date(JOB());
+ while(d<now){
+  if(isWorkDay(d)){
+   const s=new Date(d);s.setHours(cfg.start,0,0,0);
+   const e=new Date(s);e.setHours(e.getHours()+PAID()+cfg.breakHrs);
+   if(e<=now){
+    if(s>=ws)w+=DAILY();
+    if(s.getMonth()==now.getMonth()&&s.getFullYear()==now.getFullYear())m+=DAILY();
+   }
+  }
+  d.setDate(d.getDate()+1);
+ }
+ return{w,m};
+}
+
+function render(){
+ const now=new Date();
+ const base=completed(now);
+ const live=shiftProgress(now);
+ const wm=weekMonth(now);
+
+ const totalMoney=base.money+live.money+cfg.ot-cfg.dedMoney;
+ const netShifts=base.shifts-(cfg.dedHours/PAID());
+
+ const f=totalMoney.toFixed(5).split('.');
+ document.getElementById("total").innerHTML=`£${f[0]}.<span class="minor">${f[1]}</span>`;
+ document.getElementById("week").textContent="£"+(wm.w-cfg.dedMoney).toFixed(2);
+ document.getElementById("month").textContent="£"+(wm.m-cfg.dedMoney).toFixed(2);
+ document.getElementById("shifts").textContent=netShifts.toFixed(2);
+
+ document.getElementById("status").textContent=inShift(now)?"IN SHIFT":"OFF SHIFT";
+}
+
+document.getElementById("addOT").onclick=()=>{
+ const h=Number(otH.value||0);
+ const m=Number(otM.value||0);
+ const r=Number(otR.value||0);
+ const add=(h+m/60)*r;
+ if(add>0){cfg.ot+=add;save();}
+ otH.value=otM.value=otR.value='';
+ render();
+};
+
+document.getElementById("applyDed").onclick=()=>{
+ const d=Number(dedD.value||0);
+ const h=Number(dedH.value||0);
+ const m=Number(dedM.value||0);
+ const hours=d*PAID()+h+m/60;
+ if(hours>0){
+  cfg.dedHours+=hours;
+  cfg.dedMoney+=hours*HOURLY();
+  save();
+ }
+ dedD.value=dedH.value=dedM.value='';
+ render();
+};
+
+document.getElementById("saveCfg").onclick=()=>{
+ cfg.daily=Number(cfgDaily.value||cfg.daily);
+ cfg.paid=Number(cfgPaid.value||cfg.paid);
+ save();
+ render();
+};
+
+setInterval(render,200);
+render();
+</script>
+</body>
+</html>
 const JOB_START=new Date(2026,1,1,21,0,0);
 
 let dedMoney=Number(localStorage.getItem("dedMoney")||0);
@@ -1235,4 +1509,5 @@ render();
 </script>
 </body>
 </html>
+
 
