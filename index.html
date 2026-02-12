@@ -1,39 +1,111 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Warehouse Wage Console</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warehouse Wage Console – Fixed Deductions</title>
 <style>
-  /* =========================
-     WAREHOUSE WAGE CONSOLE
-     Industrial / logistics aesthetic
-     ========================= */
+body{margin:0;background:#0b1220;color:#eaf2ff;font-family:system-ui}
+.panel{background:#0f1b31;margin:12px;padding:16px;border-radius:18px}
+.amount{font-size:44px;font-weight:900}
+.minor{color:#ffdd6e}
+.kpi{margin-top:8px;font-size:14px}
+input,button{padding:10px;border-radius:10px;border:none;margin:4px 0}
+button{background:#ef4444;color:white;font-weight:700}
+</style>
+</head>
+<body>
 
-  :root{
-    --bg0:#070a0f;
-    --bg1:#0b1220;
-    --panel0:#0c1424;
-    --panel1:#0f1b31;
-    --ink:#eaf2ff;
-    --muted:#9fb0c8;
-    --muted2:#7f91ad;
+<div class="panel">
+  <div class="amount" id="total">£0.<span class="minor">00000</span></div>
+  <div class="kpi">This week: <span id="week">£0.00</span></div>
+  <div class="kpi">This month: <span id="month">£0.00</span></div>
+  <div class="kpi">Shifts (net): <span id="shifts">0.00</span></div>
+</div>
 
-    --line0:#1c2a44;
-    --line1:#2a3b5d;
+<div class="panel">
+  <h3>Deductions</h3>
+  Days <input id="dD" type="number" min="0"><br>
+  Hours <input id="dH" type="number" min="0"><br>
+  Minutes <input id="dM" type="number" min="0" max="59"><br>
+  <button id="deduct">Apply deduction</button>
+</div>
 
-    --hazard:#f7c948;      /* warning yellow */
-    --hazard2:#ffdd6e;
-    --safety:#22c55e;      /* green */
-    --info:#4da3ff;        /* blue */
-    --danger:#ef4444;      /* red */
-    --steel:#a8b3c7;
+<script>
+const DAILY=91.30, PAID_HOURS=8, HOURLY=DAILY/PAID_HOURS;
+const START=21, END=6, BREAK=1;
+const JOB_START=new Date(2026,1,1,21,0,0);
 
-    --shadow: 0 22px 70px rgba(0,0,0,.55);
-    --radius: 18px;
-    --radius2: 26px;
+let dedMoney=Number(localStorage.getItem("dedMoney")||0);
+let dedHours=Number(localStorage.getItem("dedHours")||0);
 
-    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+const isWorkDay=d=>d.getDay()<=4;
+
+function completed(now){
+ let money=0, shifts=0;
+ let d=new Date(JOB_START);
+ while(d<now){
+  if(isWorkDay(d)){
+   const s=new Date(d);s.setHours(START,0,0,0);
+   const e=new Date(s);e.setHours(e.getHours()+PAID_HOURS+BREAK);
+   if(e<=now){money+=DAILY;shifts++}
+  }
+  d.setDate(d.getDate()+1);
+ }
+ return {money,shifts};
+}
+
+function weekMonth(now){
+ let w=0,m=0;
+ const ws=new Date(now);ws.setDate(now.getDate()-now.getDay());ws.setHours(0,0,0,0);
+ let d=new Date(JOB_START);
+ while(d<now){
+  if(isWorkDay(d)){
+   const s=new Date(d);s.setHours(START,0,0,0);
+   const e=new Date(s);e.setHours(e.getHours()+PAID_HOURS+BREAK);
+   if(e<=now){
+    if(s>=ws) w+=DAILY;
+    if(s.getMonth()==now.getMonth()&&s.getFullYear()==now.getFullYear()) m+=DAILY;
+   }
+  }
+  d.setDate(d.getDate()+1);
+ }
+ return {w,m};
+}
+
+function render(){
+ const now=new Date();
+ const base=completed(now);
+ const wm=weekMonth(now);
+
+ const netMoney=base.money-dedMoney;
+ const netShifts=base.shifts-(dedHours/PAID_HOURS);
+
+ const f=netMoney.toFixed(5).split('.');
+ total.innerHTML=`£${f[0]}.<span class="minor">${f[1]}</span>`;
+ week.textContent="£"+(wm.w-dedMoney).toFixed(2);
+ month.textContent="£"+(wm.m-dedMoney).toFixed(2);
+ shifts.textContent=netShifts.toFixed(2);
+}
+
+deduct.onclick=()=>{
+ const d=Number(dD.value||0);
+ const h=Number(dH.value||0);
+ const m=Number(dM.value||0);
+ const hours=d*PAID_HOURS+h+m/60;
+ dedHours+=hours;
+ dedMoney+=hours*HOURLY;
+ localStorage.setItem("dedMoney",dedMoney);
+ localStorage.setItem("dedHours",dedHours);
+ dD.value=dH.value=dM.value='';
+ render();
+};
+
+setInterval(render,500);
+render();
+</script>
+</body>
+</html>
     --sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
@@ -1163,3 +1235,4 @@
 </script>
 </body>
 </html>
+
